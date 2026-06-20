@@ -9,6 +9,7 @@ import com.mainapp.model.User;
 import com.mainapp.model.User.UserRole;
 import com.mainapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public UserResponseDTO createUser(UserDTO userDTO) {
         // Check if username already exists
@@ -33,13 +35,15 @@ public class UserService {
             throw new ResourceAlreadyExistsException("Email already exists: " + userDTO.getEmail());
         }
 
-        // Create new user
+        // Create new user with hashed password
         User user = User.builder()
                 .username(userDTO.getUsername())
                 .email(userDTO.getEmail())
-                .password(userDTO.getPassword()) // TODO: Hash password in production
+                .password(passwordEncoder.encode(userDTO.getPassword()))  // Hash password
                 .fullName(userDTO.getFullName())
                 .role(userDTO.getRole())
+                .phone(userDTO.getPhone())
+                .aadhaarRef(userDTO.getAadhaarRef())
                 .active(true)
                 .build();
 
@@ -110,11 +114,19 @@ public class UserService {
         }
 
         if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
-            user.setPassword(userDTO.getPassword()); // TODO: Hash password
+            user.setPassword(passwordEncoder.encode(userDTO.getPassword()));  // Hash password
         }
 
         if (userDTO.getRole() != null) {
             user.setRole(userDTO.getRole());
+        }
+
+        if (userDTO.getPhone() != null) {
+            user.setPhone(userDTO.getPhone());
+        }
+
+        if (userDTO.getAadhaarRef() != null) {
+            user.setAadhaarRef(userDTO.getAadhaarRef());
         }
 
         if (userDTO.getActive() != null) {
@@ -156,6 +168,8 @@ public class UserService {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .role(user.getRole())
+                .phone(user.getPhone())
+                .aadhaarRef(user.getAadhaarRef())
                 .active(user.getActive())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

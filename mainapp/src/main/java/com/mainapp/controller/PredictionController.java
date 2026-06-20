@@ -46,6 +46,20 @@ public class PredictionController {
         }
     }
 
+    @PostMapping("/generate-future-for-dealer")
+    public ResponseEntity<ApiResponse<List<PredictionResponse>>> generateFuturePredictionsForDealer(
+            @RequestParam Long dealerId,
+            @RequestParam(defaultValue = "6") int months) {
+        try {
+            List<PredictionResponse> response = predictionService.generateFuturePredictionsForDealer(dealerId, months);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Future predictions generated successfully", response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PredictionResponse>> getPredictionById(@PathVariable Long id) {
         try {

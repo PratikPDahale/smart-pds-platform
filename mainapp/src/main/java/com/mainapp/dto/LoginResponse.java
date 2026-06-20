@@ -13,5 +13,6 @@ public class LoginResponse {
     private UserResponseDTO user;
     private CitizenResponse citizenProfile;  // null if not a citizen
     private DealerResponse dealerProfile;    // null if not a dealer
+    private AdminResponse adminProfile;      // null if not an admin
     private String message;
 }

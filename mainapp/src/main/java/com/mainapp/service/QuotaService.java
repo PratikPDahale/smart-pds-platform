@@ -165,9 +165,12 @@ public class QuotaService {
 
         // Get all active quotas for this category, month, and year
         List<Quota> quotas = quotaRepository.findByCategoryAndMonthAndYear(
-                citizen.getCategory(), month, year);
+                citizen.getCategory(), month, year).stream()
+                .filter(quota -> Boolean.TRUE.equals(quota.getActive()))
+                .toList();
 
         List<CitizenQuotaStatus> statusList = new ArrayList<>();
+        Integer familySize = citizen.getFamilySize() != null ? citizen.getFamilySize() : 1;
 
         for (Quota quota : quotas) {
             Product product = productRepository.findById(quota.getProductId()).orElse(null);
@@ -177,8 +180,9 @@ public class QuotaService {
             Double redeemedQuantity = calculateRedeemedQuantity(
                     citizen.getId(), quota.getProductId(), month, year);
 
-            Double remainingQuota = quota.getQuotaPerCitizen() - redeemedQuantity;
-            Double percentageUsed = (redeemedQuantity / quota.getQuotaPerCitizen()) * 100;
+            Double totalQuota = quota.getQuotaPerCitizen() * familySize;
+            Double remainingQuota = totalQuota - redeemedQuantity;
+            Double percentageUsed = totalQuota > 0 ? (redeemedQuantity / totalQuota) * 100 : 0.0;
 
             String status;
             if (remainingQuota <= 0) {
@@ -196,10 +200,12 @@ public class QuotaService {
                     .category(citizen.getCategory().name())
                     .month(month)
                     .year(year)
-                    .totalQuota(quota.getQuotaPerCitizen())
-                    .redeemedQuantity(redeemedQuantity)
-                    .remainingQuota(Math.max(0, remainingQuota))
-                    .percentageUsed(Math.round(percentageUsed * 100.0) / 100.0)
+                    .familySize(familySize)
+                    .quotaPerCitizen(roundQuantity(quota.getQuotaPerCitizen()))
+                    .totalQuota(roundQuantity(totalQuota))
+                    .redeemedQuantity(roundQuantity(redeemedQuantity))
+                    .remainingQuota(roundQuantity(Math.max(0, remainingQuota)))
+                    .percentageUsed(roundQuantity(Math.min(100, percentageUsed)))
                     .status(status)
                     .build();
 
@@ -228,7 +234,7 @@ public class QuotaService {
                 .stream()
                 .filter(dist -> {
                     LocalDateTime distDate = dist.getDistributionDate();
-                    return !distDate.isBefore(startDate) && !distDate.isAfter(endDate);
+                    return distDate != null && !distDate.isBefore(startDate) && !distDate.isAfter(endDate);
                 })
                 .mapToDouble(dist -> dist.getQuantity())
                 .sum();
@@ -249,7 +255,9 @@ public class QuotaService {
         }
 
         Double redeemedQuantity = calculateRedeemedQuantity(citizenId, productId, month, year);
-        Double remainingQuota = quota.getQuotaPerCitizen() - redeemedQuantity;
+        Integer familySize = citizen.getFamilySize() != null ? citizen.getFamilySize() : 1;
+        Double totalQuota = quota.getQuotaPerCitizen() * familySize;
+        Double remainingQuota = totalQuota - redeemedQuantity;
 
         return remainingQuota >= requestedQuantity;
     }
@@ -271,5 +279,13 @@ public class QuotaService {
                 .createdAt(quota.getCreatedAt())
                 .updatedAt(quota.getUpdatedAt())
                 .build();
+    }
+
+    private Double roundQuantity(Double quantity) {
+        if (quantity == null) {
+            return 0.0;
+        }
+
+        return Math.round(quantity * 100.0) / 100.0;
     }
 }

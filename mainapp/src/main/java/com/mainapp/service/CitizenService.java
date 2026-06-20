@@ -12,6 +12,8 @@ import com.mainapp.repository.CitizenRepository;
 import com.mainapp.repository.DealerRepository;
 import com.mainapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ public class CitizenService {
     private final CitizenRepository citizenRepository;
     private final UserRepository userRepository;
     private final DealerRepository dealerRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public CitizenResponse createCitizen(CitizenRequest request) {
         // Check if username already exists
@@ -47,7 +50,8 @@ public class CitizenService {
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
-                .password(request.getPassword()) // TODO: Hash password
+                // .password(request.getPassword()) // TODO: Hash password
+                .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .role(UserRole.CITIZEN)
                 .active(true)

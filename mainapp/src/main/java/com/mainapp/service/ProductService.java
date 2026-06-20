@@ -27,10 +27,9 @@ public class ProductService {
 
         Product product = Product.builder()
                 .productName(request.getProductName())
-                .unit(request.getUnit().toUpperCase())
+                .unit(request.getUnit() != null ? request.getUnit().toUpperCase() : null)
                 .pricePerUnit(request.getPricePerUnit())
                 .category(request.getCategory() != null ? request.getCategory().toUpperCase() : null)
-                .active(true)
                 .build();
 
         Product savedProduct = productRepository.save(product);
@@ -50,9 +49,7 @@ public class ProductService {
     }
 
     public List<ProductResponse> getActiveProducts() {
-        return productRepository.findByActive(true).stream()
-                .map(this::mapToProductResponse)
-                .collect(Collectors.toList());
+        return getAllProducts();
     }
 
     public List<ProductResponse> getProductsByCategory(String category) {
@@ -67,7 +64,7 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Product not found with ID: " + id));
 
         product.setProductName(request.getProductName());
-        product.setUnit(request.getUnit().toUpperCase());
+        product.setUnit(request.getUnit() != null ? request.getUnit().toUpperCase() : null);
         product.setPricePerUnit(request.getPricePerUnit());
         product.setCategory(request.getCategory() != null ? request.getCategory().toUpperCase() : null);
 
@@ -87,10 +84,10 @@ public class ProductService {
     public ProductResponse toggleProductStatus(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with ID: " + id));
-        
-        product.setActive(!product.getActive());
-        Product updatedProduct = productRepository.save(product);
-        return mapToProductResponse(updatedProduct);
+
+        // The current database schema does not persist product activation state.
+        // Return the product as-is so existing clients keep working.
+        return mapToProductResponse(product);
     }
 
     // Helper method
@@ -98,12 +95,10 @@ public class ProductService {
         return ProductResponse.builder()
                 .id(product.getId())
                 .productName(product.getProductName())
-                .unit(product.getUnit())
+                .unit(product.getUnit() != null ? product.getUnit() : "N/A")
                 .pricePerUnit(product.getPricePerUnit())
                 .category(product.getCategory())
-                .active(product.getActive())
-                .createdAt(product.getCreatedAt())
-                .updatedAt(product.getUpdatedAt())
+                .active(true)
                 .build();
     }
 }

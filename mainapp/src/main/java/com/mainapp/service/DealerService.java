@@ -13,6 +13,8 @@ import com.mainapp.model.User.UserRole;
 import com.mainapp.repository.DealerRepository;
 import com.mainapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ public class DealerService {
 
     private final DealerRepository dealerRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // ================== ADMIN CREATES DEALER (Direct Approval) ==================
 
@@ -50,7 +53,8 @@ public class DealerService {
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
-                .password(request.getPassword()) // TODO: Hash password
+                // .password(request.getPassword()) // TODO: Hash password
+                .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .role(UserRole.DEALER)
                 .active(true)
@@ -96,7 +100,8 @@ public class DealerService {
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
-                .password(request.getPassword()) // TODO: Hash password
+                // .password(request.getPassword()) // TODO: Hash password
+                .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .aadhaarRef(request.getAadhaarRef())
                 .phone(request.getPhoneNumber())
@@ -246,9 +251,9 @@ public class DealerService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setFullName(request.getFullName());
-        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-            user.setPassword(request.getPassword()); // TODO: Hash password
-        }
+       if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+    user.setPassword(passwordEncoder.encode(request.getPassword()));
+}
 
         // Update dealer profile
         if (!dealer.getShopLicense().equals(request.getShopLicense()) &&

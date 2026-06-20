@@ -1,14 +1,25 @@
 package com.mainapp.service;
 
+import com.mainapp.dto.AdminRegistrationRequest;
+import com.mainapp.dto.AdminResponse;
 import com.mainapp.dto.DistributionResponse;
 import com.mainapp.dto.InventoryResponse;
+import com.mainapp.exception.ResourceAlreadyExistsException;
+import com.mainapp.exception.ResourceNotFoundException;
+import com.mainapp.model.AdminProfile;
 import com.mainapp.model.Citizen;
+import com.mainapp.model.User;
+import com.mainapp.model.User.UserRole;
+import com.mainapp.repository.AdminProfileRepository;
 import com.mainapp.repository.CitizenRepository;
 import com.mainapp.repository.DealerRepository;
 import com.mainapp.repository.DistributionRepository;
 import com.mainapp.repository.ProductRepository;
+import com.mainapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -17,6 +28,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AdminService {
 
     private final DistributionService distributionService;
@@ -25,6 +37,147 @@ public class AdminService {
     private final DealerRepository dealerRepository;
     private final ProductRepository productRepository;
     private final DistributionRepository distributionRepository;
+    private final UserRepository userRepository;
+    private final AdminProfileRepository adminProfileRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    // Admin registration codes for security (in production, these should be stored in DB and time-limited)
+    private static final Map<String, String> VALID_REGISTRATION_CODES = new HashMap<>();
+    
+    static {
+        VALID_REGISTRATION_CODES.put("ADMIN_PDS_2024", "PDS Admin Registration");
+        VALID_REGISTRATION_CODES.put("GOV_RATION_ADMIN", "Government Ration System");
+        VALID_REGISTRATION_CODES.put("ERATIONS_SETUP_01", "E-Rations System Setup");
+    }
+
+    // ================== ADMIN REGISTRATION & PROFILE ==================
+
+    /**
+     * Register a new admin user
+     * Requires a valid registration code for security
+     */
+    public AdminResponse registerAdmin(AdminRegistrationRequest request) {
+        // Validate registration code
+        if (!isValidRegistrationCode(request.getRegistrationCode())) {
+            throw new IllegalArgumentException("Invalid registration code. Contact system administrator.");
+        }
+
+        // Check if username already exists
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new ResourceAlreadyExistsException("Username already exists: " + request.getUsername());
+        }
+
+        // Check if email already exists
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new ResourceAlreadyExistsException("Email already exists: " + request.getEmail());
+        }
+
+        // Create User entity with ADMIN role
+        User adminUser = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .fullName(request.getFullName())
+                .role(UserRole.ADMIN)
+                .phone(request.getPhone())
+                .aadhaarRef(request.getAadhaarRef())
+                .active(true)
+                .build();
+
+        User savedUser = userRepository.save(adminUser);
+
+        // Create AdminProfile
+        AdminProfile adminProfile = AdminProfile.builder()
+                .user(savedUser)
+                .department(request.getDepartment())
+                .designation(request.getDesignation())
+                .active(true)
+                .build();
+
+        AdminProfile savedAdminProfile = adminProfileRepository.save(adminProfile);
+
+        return mapAdminToResponse(savedAdminProfile);
+    }
+
+    /**
+     * Get admin profile by user ID
+     */
+    @Transactional(readOnly = true)
+    public AdminResponse getAdminProfileByUserId(Long userId) {
+        AdminProfile adminProfile = adminProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin profile not found for user ID: " + userId));
+        return mapAdminToResponse(adminProfile);
+    }
+
+    /**
+     * Update admin profile
+     */
+    public AdminResponse updateAdminProfile(Long adminId, String department, String designation) {
+        AdminProfile adminProfile = adminProfileRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin profile not found with ID: " + adminId));
+
+        if (department != null && !department.isBlank()) {
+            adminProfile.setDepartment(department);
+        }
+        if (designation != null && !designation.isBlank()) {
+            adminProfile.setDesignation(designation);
+        }
+
+        AdminProfile updatedProfile = adminProfileRepository.save(adminProfile);
+        return mapAdminToResponse(updatedProfile);
+    }
+
+    /**
+     * Deactivate admin account
+     */
+    public AdminResponse deactivateAdmin(Long adminId) {
+        AdminProfile adminProfile = adminProfileRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin profile not found with ID: " + adminId));
+
+        adminProfile.setActive(false);
+        adminProfile.getUser().setActive(false);
+
+        AdminProfile updatedProfile = adminProfileRepository.save(adminProfile);
+        return mapAdminToResponse(updatedProfile);
+    }
+
+    /**
+     * Activate admin account
+     */
+    public AdminResponse activateAdmin(Long adminId) {
+        AdminProfile adminProfile = adminProfileRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin profile not found with ID: " + adminId));
+
+        adminProfile.setActive(true);
+        adminProfile.getUser().setActive(true);
+
+        AdminProfile updatedProfile = adminProfileRepository.save(adminProfile);
+        return mapAdminToResponse(updatedProfile);
+    }
+
+    /**
+     * Validate registration code
+     * In production, this should query a time-limited registration codes table
+     */
+    private boolean isValidRegistrationCode(String code) {
+        return VALID_REGISTRATION_CODES.containsKey(code);
+    }
+
+    /**
+     * Map AdminProfile to AdminResponse DTO
+     */
+    private AdminResponse mapAdminToResponse(AdminProfile adminProfile) {
+        return AdminResponse.builder()
+                .id(adminProfile.getId())
+                .userId(adminProfile.getUser().getId())
+                .department(adminProfile.getDepartment())
+                .designation(adminProfile.getDesignation())
+                .active(adminProfile.getActive())
+                .createdAt(adminProfile.getCreatedAt())
+                .updatedAt(adminProfile.getUpdatedAt())
+                .build();
+    }
+
 
     // ================== DASHBOARD STATISTICS ==================
 
@@ -36,7 +189,7 @@ public class AdminService {
         stats.put("totalProducts", productRepository.count());
         stats.put("totalDistributions", distributionRepository.count());
         stats.put("activeDealers", dealerRepository.findByActive(true).size());
-        stats.put("activeProducts", productRepository.findByActive(true).size());
+        stats.put("activeProducts", productRepository.count());
         
         return stats;
     }

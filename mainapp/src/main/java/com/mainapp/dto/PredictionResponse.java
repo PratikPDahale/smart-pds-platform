@@ -17,5 +17,7 @@ public class PredictionResponse {
     private Double predictedDemand;
     private String predictionMonth;
     private String algorithm;
+    private String festivalImpact;
+    private Double festivalMultiplier;
     private LocalDateTime generatedAt;
 }

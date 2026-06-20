@@ -46,8 +46,8 @@ public class InventoryService {
                         .build());
 
         // Update stock
-        inventory.setStockReceived(inventory.getStockReceived() + request.getQuantity());
-        inventory.setCurrentStock(inventory.getCurrentStock() + request.getQuantity());
+        inventory.setStockReceived(roundQuantity(inventory.getStockReceived() + request.getQuantity()));
+        inventory.setCurrentStock(roundQuantity(inventory.getCurrentStock() + request.getQuantity()));
         inventory.setLastUpdated(LocalDateTime.now());
 
         Inventory savedInventory = inventoryRepository.save(inventory);
@@ -71,8 +71,8 @@ public class InventoryService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        inventory.setStockDistributed(inventory.getStockDistributed() + quantity);
-        inventory.setCurrentStock(inventory.getCurrentStock() - quantity);
+        inventory.setStockDistributed(roundQuantity(inventory.getStockDistributed() + quantity));
+        inventory.setCurrentStock(roundQuantity(inventory.getCurrentStock() - quantity));
         inventory.setLastUpdated(LocalDateTime.now());
 
         Inventory updatedInventory = inventoryRepository.save(inventory);
@@ -137,7 +137,10 @@ public class InventoryService {
                 .collect(Collectors.toList());
     }
 
-    // Helper method
+    private Double roundQuantity(Double quantity) {
+        return Math.round(quantity * 100.0) / 100.0;
+    }
+
     private InventoryResponse mapToInventoryResponse(Inventory inventory, Dealer dealer, Product product) {
         return InventoryResponse.builder()
                 .id(inventory.getId())
@@ -145,10 +148,10 @@ public class InventoryService {
                 .dealerName(dealer != null ? dealer.getShopName() : "Unknown")
                 .productId(inventory.getProductId())
                 .productName(product != null ? product.getProductName() : "Unknown")
-                .currentStock(inventory.getCurrentStock())
-                .openingStock(inventory.getOpeningStock())
-                .stockReceived(inventory.getStockReceived())
-                .stockDistributed(inventory.getStockDistributed())
+                .currentStock(roundQuantity(inventory.getCurrentStock()))
+                .openingStock(roundQuantity(inventory.getOpeningStock()))
+                .stockReceived(roundQuantity(inventory.getStockReceived()))
+                .stockDistributed(roundQuantity(inventory.getStockDistributed()))
                 .lastUpdated(inventory.getLastUpdated())
                 .build();
     }

@@ -1,7 +1,10 @@
 package com.mainapp.dto;
 
 import com.mainapp.model.User.UserRole;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,4 +37,6 @@ public class UserDTO {
     private UserRole role;
 
     private Boolean active;
+    private String phone;
+    private String aadhaarRef;
 }

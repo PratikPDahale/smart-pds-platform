@@ -1,0 +1,2 @@
+mainapp/src/main/resources/application-local.properties
+configserver/src/main/resources/config/*-local.properties

@@ -37,6 +37,12 @@ public class StockPrediction {
     @Column(length = 50)
     private String algorithm = "SIMPLE_AVERAGE"; // Algorithm used for prediction
 
+    @Column(length = 255)
+    private String festivalImpact;
+
+    @Builder.Default
+    private Double festivalMultiplier = 1.0;
+
     @Column(nullable = false)
     private LocalDateTime generatedAt;
 

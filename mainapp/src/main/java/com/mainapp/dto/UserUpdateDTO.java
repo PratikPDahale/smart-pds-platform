@@ -2,6 +2,7 @@ package com.mainapp.dto;
 
 import com.mainapp.model.User.UserRole;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,6 +28,11 @@ public class UserUpdateDTO {
     private String fullName;
 
     private UserRole role;
+
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits")
+    private String phone;
+
+    private String aadhaarRef;
 
     private Boolean active;
 }

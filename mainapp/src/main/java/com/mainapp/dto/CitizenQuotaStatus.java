@@ -14,6 +14,8 @@ public class CitizenQuotaStatus {
     private String category;
     private Integer month;
     private Integer year;
+    private Integer familySize;
+    private Double quotaPerCitizen;
     private Double totalQuota;
     private Double redeemedQuantity;
     private Double remainingQuota;

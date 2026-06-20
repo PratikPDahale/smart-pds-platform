@@ -1,7 +1,6 @@
 package com.mainapp.dto;
 
 import lombok.*;
-import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -15,6 +14,4 @@ public class ProductResponse {
     private Double pricePerUnit;
     private String category;
     private Boolean active;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }
